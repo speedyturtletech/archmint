@@ -33,6 +33,7 @@ grub-mkconfig -o /boot/grub/grub.cfg
 # install yay as user (make user)
 useradd -m -p $pass $username
 echo '$username ALL=(ALL:ALL) ALL' >> /etc/sudoers
+pacman -S --needed base-devel
 su $username
 cd ~
 git clone https://aur.archlinux.org/yay-bin.git
