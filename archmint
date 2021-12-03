@@ -1,0 +1,49 @@
+#!/bin/bash
+# archmint installer
+# by Matthew Hull
+export password="password"
+export username="test"
+export pass=$(perl -e 'print crypt($ARGV[0], "password")' $password)
+export rootfs="/dev/vda2"
+export rootdisk="/dev/vda"
+export locale="en_US.UTF-8"
+export timezone="America/New_York"
+# install packages
+reflector --latest 20 --sort rate --save /etc/pacman.d/mirrorlist
+mount $rootfs /mnt
+pacstrap /mnt base linux-lts linux-firmware networkmanager nano neofetch xorg cinnamon lightdm lightdm-slick-greeter gnome-terminal firefox ttf-dejavu deja-dup gufw thunderbird gimp inkscape libreoffice sudo git grub warpinator
+# gen fstab
+genfstab -U /mnt > /mnt/etc/fstab
+# chroot
+arch-chroot /mnt /bin/bash<<EOF
+# timezone config
+ln -sf /usr/share/zoneinfo/$timezone /etc/localtime
+hwclock --systohc
+# gen locales
+echo "$locale UTF-8" > /etc/locale.gen
+locale-gen
+echo "LANG=$locale" > /etc/locale.con
+# enable services and set up lightdm
+systemctl enable NetworkManager
+systemctl enable lightdm
+sed -i 's/#greeter-session=example-gtk-gnome/greeter-session=lightdm-slick-greeter/g' /etc/lightdm/lightdm.conf
+# install grub
+grub-install --target=i386-pc $rootdisk
+grub-mkconfig -o /boot/grub/grub.cfg
+# install yay as user (make user)
+useradd -m -p $pass $username
+echo '$username ALL=(ALL:ALL) ALL' >> /etc/sudoers
+su $username
+cd ~
+git clone https://aur.archlinux.org/yay-bin.git
+cd yay-bin
+makepkg -si
+# install aur packages
+cd ~
+yay -S timeshift pamac-nosnap webapp-manager mint-themes mint-y-icons hipnotix
+# install themes
+gsettings set org.cinnamon.theme name 'Linux Mint'
+gsettings set org.cinnamon.desktop.interface icon-theme 'Mint-Y'
+gsettings set org.cinnamon.desktop.wm.preferences theme 'Mint-Y'
+EOF
+echo "Archmint has been installed, you may now reboot"
